@@ -16,94 +16,71 @@ import evaluate
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, classification_report
 
 # ==========================================
-# 0. Forced GPU Check
+# 0. 強制 GPU 檢查
 # ==========================================
 print("\n" + "="*50)
-print("🔍 System Environment Check")
+print("🔍 系統環境檢查")
 print("="*50)
 if torch.cuda.is_available():
-    print(f"✅ GPU Detected: {torch.cuda.get_device_name(0)}")
+    print(f"✅ 成功偵測 GPU: {torch.cuda.get_device_name(0)}")
     vram = torch.cuda.get_device_properties(0).total_memory / 1024**3
     print(f"   VRAM: {vram:.2f} GB")
-    print("   >> Status: Perfect! Training will use GPU.")
+    print("   >> 狀態：完美！將使用 GPU 加速訓練。")
 else:
-    print("❌ CRITICAL WARNING: No GPU detected! Using CPU.")
-    print("   >> Training will be extremely slow.")
-    print("   >> Recommended: Stop (Ctrl+C) and fix PyTorch with:")
-    print("      uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121")
-    input("\n⚠️ Press Enter to force CPU execution (Not Recommended)...")
+    print("❌ 嚴重警告：未偵測到 GPU！正在使用 CPU。")
+    input("\n⚠️ 按 Enter 鍵強行用 CPU 繼續 (不建議)...")
 print("="*50 + "\n")
 
 # ==========================================
-# 1. Smart Data Loading Strategy (IMPROVED)
+# 1. 載入數據 (Multi-Label Version)
 # ==========================================
-train_file = "train_data_topic.json"  # Your 50k synthetic file
-test_file = "test_data_gold.json"     # Your MANUAL/HARD test file
+# ⚠️ 注意：這裡讀取的是你剛剛生成的 "multilabel" 數據
+train_file = "train_data_multilabel.json" 
 
-# 1. Load Training Data
 if not os.path.exists(train_file):
-    print(f"❌ Missing {train_file}! Please run 'python script/generate_huge_data.py'")
+    print(f"❌ 找不到 {train_file}！請先執行 'python script/generate_multilabel_data.py'")
     exit()
 
-print(f"📂 Loading Training Data: {train_file}...")
+print(f"📂 正在讀取 {train_file}...")
 with open(train_file, "r", encoding="utf-8") as f:
-    train_raw = json.load(f)
-dataset_train = Dataset.from_list(train_raw)
+    raw_data = json.load(f)
 
-# 2. Load Test Data (Logic: Prefer separate file, fallback to split)
-if os.path.exists(test_file):
-    print(f"✅ Found Gold Standard Test Set: {test_file}")
-    print("   >> Evaluating on REAL/HARD data. This is excellent!")
-    with open(test_file, "r", encoding="utf-8") as f:
-        test_raw = json.load(f)
-    dataset_test = Dataset.from_list(test_raw)
-else:
-    print(f"⚠️ 'Gold Standard' test set ({test_file}) not found.")
-    print("   >> Falling back to random 80/20 split from training data.")
-    print("   >> (Note: Accuracy might be artificially high due to template similarity)")
-    
-    # Split the training data
-    split = dataset_train.train_test_split(test_size=0.1) # 10% is enough for 50k samples
-    dataset_train = split["train"]
-    dataset_test = split["test"]
+dataset = Dataset.from_list(raw_data)
+
+# 90% 訓練, 10% 測試 (因為數據量大，10% 做 Evaluation 已經足夠)
+split = dataset.train_test_split(test_size=0.1) 
+dataset_train = split["train"]
+dataset_test = split["test"]
 
 print(f"   - Train Size: {len(dataset_train)}")
 print(f"   - Test Size:  {len(dataset_test)}")
 
 # ==========================================
-# 2. Label Definitions (12 Classes)
+# 2. 定義 12 個類別
 # ==========================================
 id2label = {
-    0: "COMPLAINT", 
-    1: "QUESTION", 
-    2: "PRAISE", 
-    3: "SUGGESTION", 
-    4: "STATUS_CHECK", 
-    5: "FRAUD_REPORT", 
-    6: "CANCELLATION", 
-    7: "SALES_LEAD", 
-    8: "HUMAN_AGENT", 
-    9: "BUG_REPORT", 
-    10: "GREETING", 
-    11: "IRRELEVANT"
+    0: "COMPLAINT", 1: "QUESTION", 2: "PRAISE", 3: "SUGGESTION", 
+    4: "STATUS_CHECK", 5: "FRAUD_REPORT", 6: "CANCELLATION", 7: "SALES_LEAD", 
+    8: "HUMAN_AGENT", 9: "BUG_REPORT", 10: "GREETING", 11: "IRRELEVANT"
 }
 label2id = {v: k for k, v in id2label.items()}
 
 # ==========================================
-# 3. Model Setup
+# 3. 模型設定 (關鍵修改！)
 # ==========================================
 model_name = "xlm-roberta-large" 
-print(f"\n📥 Loading Model: {model_name}...")
+print(f"\n📥 正在載入模型: {model_name}...")
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
 model = AutoModelForSequenceClassification.from_pretrained(
     model_name,
-    num_labels=12,  # 12 Classes
+    num_labels=12,
     id2label=id2label,
-    label2id=label2id
+    label2id=label2id,
+    problem_type="multi_label_classification" # 👈 關鍵：開啟 Sigmoid 模式
 )
 
-# LoRA Config
+# LoRA 設定 (保持不變)
 peft_config = LoraConfig(
     task_type=TaskType.SEQ_CLS,
     inference_mode=False, 
@@ -114,38 +91,45 @@ peft_config = LoraConfig(
     modules_to_save=["classifier"] 
 )
 model = get_peft_model(model, peft_config)
-print("\n📊 Trainable Parameters:")
 model.print_trainable_parameters()
 
 # ==========================================
-# 4. Training Arguments (IMPROVED)
+# 4. 訓練參數 & Metrics (關鍵修改！)
 # ==========================================
 def preprocess_function(examples):
     return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=128)
 
-print("\n🔄 Tokenizing data...")
+print("\n🔄 正在處理數據 (Tokenization)...")
 tokenized_train = dataset_train.map(preprocess_function, batched=True)
 tokenized_test = dataset_test.map(preprocess_function, batched=True)
 data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
+# ⚠️ 全新 Sigmoid 評估函數
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
-    predictions = np.argmax(logits, axis=-1)
-    precision, recall, f1, _ = precision_recall_fscore_support(labels, predictions, average='weighted', zero_division=0)
+    
+    # 1. 將 Logits 轉為 0-1 機率 (Sigmoid)
+    probs = torch.sigmoid(torch.tensor(logits)).numpy()
+    
+    # 2. 設定門檻 (Threshold) > 0.5 為 True
+    predictions = (probs > 0.5).astype(int)
+    
+    # 3. 計算分數 (使用 'micro' average 適合多標籤)
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        labels, predictions, average='micro', zero_division=0
+    )
+    
+    # Accuracy 在多標籤中是指 "Exact Match" (12個都要全中才算對)，所以分數通常較低，參考即可
     acc = accuracy_score(labels, predictions)
+    
     return {'accuracy': acc, 'f1': f1, 'precision': precision, 'recall': recall}
 
 training_args = TrainingArguments(
-    output_dir="./topic_classification_output",
+    output_dir="./topic_multilabel_output", # 改名以免覆蓋舊模型
     learning_rate=5e-5,
-    
-    # --- Hardware Optimization for RTX 4060 (8GB) ---
     per_device_train_batch_size=4, 
-    gradient_accumulation_steps=4, # Effective Batch Size = 16
-    
-    # --- Preventing Overfitting ---
-    num_train_epochs=3, # Reduced from 10 to 3 (50k data is large enough)
-    
+    gradient_accumulation_steps=4,
+    num_train_epochs=3, # 3 Epochs 足夠
     weight_decay=0.01,
     eval_strategy="epoch",
     save_strategy="epoch",
@@ -169,21 +153,23 @@ trainer = Trainer(
     callbacks=[EarlyStoppingCallback(early_stopping_patience=2)]
 )
 
-print("\n🚀 Starting Training...")
+print("\n🚀 開始 Multi-Label 訓練...")
 trainer.train()
 
-# ==========================================
-# 5. Saving & Evaluation
-# ==========================================
-save_path = "./final_topic_model"
-print(f"\n✅ Training Complete! Saving to {save_path} ...")
+# 儲存
+save_path = "./final_multilabel_model" # 改名
+print(f"\n✅ 訓練完成！正在儲存至 {save_path} ...")
 model.save_pretrained(save_path)
 tokenizer.save_pretrained(save_path)
 
+# 評估報告
 print("\n" + "="*50)
-print("📈 Final Evaluation Report")
+print("📈 最終評估報告")
 print("="*50)
 predictions = trainer.predict(tokenized_test)
-preds = np.argmax(predictions.predictions, axis=-1)
+# 預測轉換
+probs = torch.sigmoid(torch.tensor(predictions.predictions)).numpy()
+preds = (probs > 0.5).astype(int)
 labels = predictions.label_ids
-print(classification_report(labels, preds, target_names=list(label2id.keys())))
+
+print(classification_report(labels, preds, target_names=list(label2id.keys()), zero_division=0))

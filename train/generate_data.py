@@ -1,296 +1,433 @@
 import json
 import random
 
-def generate_huge_data(num_samples=50000):
-    print(f"🔄 Generating {num_samples} high-quality synthetic data points (12 Topics)...")
+def generate_multilabel_data(num_samples=50000):
+    print(f"🔄 Generating {num_samples} High-Quality Multi-Label Data (Unique & Conflict-Free)...")
     
     # ==========================================
-    # 1. Expanded Vocabulary (English & Cantonese)
+    # 1. Expanded Slots (詞庫擴充)
     # ==========================================
     slots = {
-        # --- Common Nouns (English) ---
-        "issue": ["App keeps crashing", "Frozen screen", "Cannot load", "White screen", "Transfer failed", "No OTP received", "Login failed", "Biometric fail", "Glitch", "Force close"],
-        "status": ["No one answering", "Line busy", "Cut off", "Voicemail", "Waited 30 mins", "Just music", "Disconnected", "No reply"],
-        "error": ["Error 404", "System Failure", "Timeout", "Connection Error", "Server Busy", "Code: 503", "Unknown Error", "Access Denied"],
-        "behavior": ["Very rude", "Bad attitude", "Ignored me", "Hung up", "Impatient", "Unhelpful", "Unprofessional", "Angry tone"],
-        "fee": ["Handling fee", "Annual fee", "Late charge", "Overdraft interest", "Admin fee", "Replacement fee", "Hidden charge"],
-        "feeling": ["Disappointed", "Angry", "Unsatisfied", "Helpless", "Furious", "Shocked", "Unbelievable", "Desperate"],
-        "item": ["Credit Card", "PIN letter", "ATM card", "Cheque book", "Statement", "Security token", "New card", "Welcome gift"],
-        "time": ["Saturday", "Public Holiday", "Weekday", "Lunar New Year", "Black Rainstorm", "Typhoon 8", "Lunch hour", "After work"],
-        "product": ["Credit Card", "Personal Loan", "Mortgage", "Insurance", "MPF", "Fixed Deposit", "Tax Loan", "Travel Insurance"],
-        "info": ["Address", "Phone number", "Email", "Date of birth", "Signature", "Transfer limit", "Credit limit"],
-        "feature": ["Overseas withdrawal", "FPS", "Online Banking", "Stock trading", "FX exchange", "PayMe Top-up", "Apple Pay", "Google Pay"],
-        "staff": ["Manager Chan", "Teller", "Hotline staff", "Branch manager", "Relationship Manager", "That male staff", "Receptionist", "CS Agent"],
-        "trait": ["Polite", "Patient", "Professional", "Attentive", "Friendly", "Efficient", "Clear", "Helpful"],
-        "service": ["service", "support", "arrangement", "follow-up", "speed", "experience", "attitude"],
-        "improvement": ["Much smoother", "Faster", "Easier to use", "More stable", "Nicer UI", "Convenient", "User Friendly"],
-        "location": ["Mong Kok Branch", "Central HQ", "Kwun Tong Branch", "Shatin Branch", "Tuen Mun Branch", "Causeway Bay Branch"],
-        "amount": ["Few hundred", "10k", "Few thousand", "Cents", "The fee"],
+        # --- Tech / Bug ---
+        "tech_noun": ["Login page", "FaceID", "Submit button", "Loading screen", "Transfer page", "The App", "Fingerprint sensor", "Home screen", "Payment gateway", "QR Code scanner"],
+        "tech_verb": ["crashes", "freezes", "won't load", "is lagging", "force closes", "is stuck", "drains battery", "is not responding", "keeps spinning"],
+        "error_code": ["Error 503", "System Failure", "Connection Timeout", "Unknown Error", "Code: 999", "Access Denied", "404 Not Found", "Gateway Timeout"],
         
-        # --- Specific for New Topics ---
-        "fraud_keyword": ["Stolen", "Lost", "Unauthorzied transaction", "Hacked", "Phishing", "Scam", "Suspicious SMS"],
-        "cancel_action": ["Cancel", "Terminate", "Close account", "Cut card", "Stop service", "Unsubscribe"],
-        "sales_interest": ["Interested in", "Want to buy", "Looking for", "Apply for", "Open account"],
-        "bug_tech": ["Button not working", "UI broken", "Font too small", "Battery drain", "Lagging"],
-        "greeting_word": ["Hi", "Hello", "Good morning", "Good afternoon", "Hey there"],
-        "junk_word": ["asdf", "test", "1234", "buy crypto", "click link", "promotion"],
-
-        # --- Cantonese / Mix (New Strategy C) ---
-        "issue_hk": ["狂彈 App", "Hang 機", "Load 唔到", "白畫面", "轉唔到數", "收唔到 OTP", "無法登入", "指紋 Login 失敗", "畫面卡住", "閃退"],
-        "status_hk": ["無人聽", "長期繁忙", "Cut 線", "飛留言", "等咗半個鐘", "一直播音樂", "沒人接聽", "斷線"],
-        "behavior_hk": ["態度極差", "黑口黑面", "十問九唔應", "掛我電話", "語氣好差", "完全唔熟書", "遊花園", "唔耐煩"],
-        "fee_hk": ["手續費", "年費", "過期罰款", "透支利息", "行政費", "補卡費", "隱藏收費"],
-        "feeling_hk": ["失望", "憤怒", "不滿", "無奈", "火滾", "O晒嘴", "難以置信", "絕望"],
-        "trait_hk": ["有禮貌", "有耐性", "專業", "細心", "友善", "效率高", "清楚", "幫得手"],
-        "cancel_action_hk": ["Cut", "取消", "停用", "唔用", "Terminate"],
-        "fraud_keyword_hk": ["俾人盜用", "唔見咗", "被 Hack", "懷疑被騙", "不明交易"],
-        "sales_interest_hk": ["想申請", "想買", "有興趣", "睇緊", "想開"],
+        # --- Service / Complaint ---
+        "staff_role": ["Manager", "Teller", "CS staff", "Hotline agent", "Relationship Manager", "The guy at counter", "Branch staff", "Live chat agent"],
+        "rude_behavior": ["very rude", "black face", "hung up on me", "ignored me", "impatient", "unhelpful", "shouted at me", "unprofessional", "lazy"],
+        "complaint_topic": ["waiting time", "handling fee", "attitude", "efficiency", "queue", "service quality", "response time"],
+        
+        # --- Products ---
+        "product": ["Credit Card", "Tax Loan", "Mortgage", "Travel Insurance", "P-Loan", "Fixed Deposit", "MPF", "Investment Account", "Business Account", "Savings Account"],
+        "item": ["ATM Card", "PIN letter", "Cheque book", "Monthly Statement", "Security Token", "Welcome Gift", "Credit Card", "Advice slip"],
+        "feature": ["FPS", "PayMe", "Stock Trading", "Currency Exchange", "Apple Pay", "Google Pay", "Bill Payment", "e-Statement"],
+        
+        # --- Actions ---
+        "action_cancel": ["cancel", "terminate", "cut", "close", "stop", "suspend"],
+        "action_apply": ["apply for", "open", "sign up for", "buy", "get"],
+        
+        # --- HK Cantonese Particles & Slang ---
+        "hk_particles": ["啦", "囉", "呀", "喎", "之嘛", "架", "勒", "既", "傑"],
+        "hk_complaint": ["搞錯", "不知所謂", "火滾", "離曬譜", "垃圾", "嬲到震", "廢", "頂唔順", "太過分"],
+        "hk_verbs": ["搞唔掂", "入唔到", "用唔到", "死左", "壞左", "神神地", "Hang左", "Load唔到"],
+        "hk_time": ["幾耐", "幾時", "好耐", "成個鐘", "等到頸都長"],
+        
+        # --- Misc ---
+        "time": ["Saturday", "Sunday", "Public Holiday", "Lunch hour", "After work", "Weekend", "Christmas"],
+        "location": ["Mong Kok", "Central", "Kwun Tong", "Shatin", "Tuen Mun", "Causeway Bay", "Tsuen Wan", "Yuen Long"],
+        "money": ["$500", "10k", "handling fee", "annual fee", "interest", "charge", "hidden fee"]
     }
 
     # ==========================================
-    # 2. Random Modifiers
+    # 2. Massive Templates (12 Classes)
     # ==========================================
-    prefixes = [
-        "", "", "", "Hi, ", "Hello, ", "Urgent: ", "Question: ", "Help, ", "Complaint: ", 
-        "To Manager: ", "Excuse me, ", "Regarding: ", "Hey, ", "May I ask, ",
-        "你好, ", "喂, ", "想問下, ", "救命, ", "急問: ", "唔該, "
-    ]
-    
-    suffixes = [
-        "", "", "", ".", "!", "...", "😡", "👍", "🙏", "😤", "🤬", "❤️", 
-        " thx.", " please help.", " ASAP!", " waiting.", " thanks.", " pls follow up.",
-        " 唔該.", " 煩請跟進.", " 快啲覆.", " 等緊你."
-    ]
+    templates = {
+        # 0. COMPLAINT (投訴)
+        0: [
+            "Your staff is {rude_behavior}, I want to complain!",
+            "I waited for 2 hours at {location}, ridiculous.",
+            "Why did you charge me {money}? Refund now!",
+            "I am very disappointed with your service.",
+            "The {staff_role} was extremely unhelpful.",
+            "Never using this bank again, service is bad.",
+            "投訴: 你地個 {staff_role} 態度好差。",
+            "有無搞錯，收我 {money} 手續費？",
+            "打極熱線都無人聽，真係 {hk_complaint}。",
+            "你地分行排隊排咁耐，不知所謂。",
+            "個 {staff_role} {rude_behavior}，叫你經理出黎。",
+            "對於你地既服務，我好失望。",
+            "無端端扣錢，離曬譜！",
+            "This is the worst banking experience ever.",
+            "Your hotline service is totally garbage.",
+            "I've been holding the line for ages!",
+            "What kind of service is this?",
+            "Totally unacceptable behavior from your staff.",
+            "真的忍無可忍，我要投訴。",
+            "垃圾銀行，亂收費！",
+            "個 CS 十問九唔應，想點呀？",
+            "火都黎埋，你地做野咁慢。",
+            "I demand an explanation for this bad service.",
+            "Your efficiency is zero.",
+            "System is down again? Are you kidding me?"
+        ],
+
+        # 1. QUESTION (查詢)
+        1: [
+            "What is the opening hour of {location} branch?",
+            "How do I activate {feature}?",
+            "Is there any annual fee for {product}?",
+            "Can I change my address online?",
+            "What is the interest rate for {product}?",
+            "Do you open on {time}?",
+            "May I ask about the {product} details?",
+            "請問 {location} 分行 {time} 開唔開？",
+            "我想問 {product} 既息口係幾多？",
+            "點樣可以用 {feature}？教我。",
+            "有無得 waive 左個 {money} 佢？",
+            "我想改電話號碼，手續係點？",
+            "FPS transfer limit 每日係幾多？",
+            "申請 {item} 要帶咩文件？",
+            "How can I update my personal info?",
+            "Is {feature} available on weekends?",
+            "Does {product} come with welcome offers?",
+            "Can I increase my credit limit?",
+            "Where can I find the ATM near {location}?",
+            "What is the swift code?",
+            "請問點樣設定外海提款？",
+            "我想問定期存款有咩優惠？",
+            "忘記密碼可以點樣 reset？",
+            "How long does the transfer take?",
+            "Can I link my account to WeChat Pay?"
+        ],
+
+        # 2. PRAISE (讚賞)
+        2: [
+            "Excellent service from {staff_role}!",
+            "The App is much faster now, good job.",
+            "Very helpful staff at {location}.",
+            "Quick and efficient, thank you.",
+            "I like the new design, very user friendly.",
+            "Appreciate the help from the hotline team.",
+            "個職員好有禮貌，值得表揚。",
+            "多謝 {staff_role} 幫我搞掂，效率好高。",
+            "今次體驗好好，俾個讚你地。",
+            "個 App 順左好多，正！",
+            "很少見到咁好既銀行職員。",
+            "Good job, keep it up!",
+            "上次去分行，個經理好幫手。",
+            "Very professional handling of my case.",
+            "Your service is the best in HK.",
+            "Thanks for waiving the fee, really appreciate it.",
+            "Customer support was top notch.",
+            "The new feature is amazing.",
+            "好滿意你地既效率。",
+            "個 Staff 解釋得好清楚，抵讚。",
+            "Thank you for the quick response.",
+            "Professional and polite.",
+            "Love the new update!",
+            "解決問題好快手，多謝。",
+            "Great user experience."
+        ],
+
+        # 3. SUGGESTION (建議)
+        3: [
+            "Please add Dark Mode to the App.",
+            "Suggest to have more ATMs in {location}.",
+            "Can you make the font bigger?",
+            "It would be better if you open on Sunday.",
+            "Please bring back the old layout.",
+            "I suggest improving the login process.",
+            "強烈建議加返指紋 Login 功能。",
+            "希望 App 可以加個 {feature} 掣。",
+            "如果你哋分行可以多幾張櫈就好啦。",
+            "建議 {product} 申請手續簡化啲。",
+            "個字體太細，老人家睇唔到，建議改大啲。",
+            "可唔可以加返舊版個 layout？",
+            "你地應該學下其他銀行加個 {feature}。",
+            "Hope you can improve the UI soon.",
+            "Ideally, the transfer limit should be higher.",
+            "Suggest to extend hotline hours.",
+            "Better add face recognition.",
+            "App 既介面可以再好用啲。",
+            "希望加多啲外幣選擇。",
+            "建議將個制放係首頁。",
+            "Please consider adding Apple Pay support.",
+            "Would be nice to have a chat bot.",
+            "Make the statement download easier.",
+            "個 Search 功能可以再準啲。",
+            "Please fix the navigation menu."
+        ],
+
+        # 4. STATUS_CHECK (進度)
+        4: [
+            "Where is my {item}? I haven't received it.",
+            "I applied for {product} last week, any update?",
+            "Check status of my application.",
+            "Is my card approved yet?",
+            "When will I get the welcome gift?",
+            "Has my cheque been cleared?",
+            "我上星期交咗表，而家審批成點？",
+            "張卡寄出未呀？等左 {hk_time}。",
+            "有無人跟進緊我個 Case？",
+            "我想 Check 下申請進度。",
+            "究竟批左未？收到文件未？",
+            "幾時先收到張 {item}？",
+            "My application is still pending, why?",
+            "Any news on my loan approval?",
+            "Check refund status.",
+            "Track my card delivery.",
+            "提交左資料好耐，無聲氣。",
+            "我想知批核結果。",
+            "Status update please.",
+            "Have you processed my request?",
+            "Is the money transferred?",
+            "確認信寄出未？",
+            "My case number is 12345, check status.",
+            "Still waiting for approval.",
+            "Did you receive my documents?"
+        ],
+
+        # 5. FRAUD_REPORT (詐騙/緊急)
+        5: [
+            "I lost my credit card, please block it!",
+            "There is a transaction I didn't make.",
+            "I think my account is hacked.",
+            "Received a suspicious SMS code.",
+            "Unknown charge of {money} on my card.",
+            "I suspect a fraudulent activity.",
+            "我唔見咗張信用卡，想報失！",
+            "收到條 SMS 話我有交易，但我無碌過卡！",
+            "懷疑被人盜用資料，快啲幫我凍結戶口。",
+            "有單交易我唔認數。",
+            "救命，我個戶口俾人 Hack 咗！",
+            "我懷疑中左詐騙。",
+            "Please freeze my account immediately.",
+            "Unauthorized withdrawal detected.",
+            "Someone used my card in Japan!",
+            "I did not authorize this payment.",
+            "Report lost card.",
+            "Suspicious login alert.",
+            "張卡俾人盜用左呀！",
+            "快啲停左我張卡佢。",
+            "有無人幫手？我唔見左銀包。",
+            "Emergency: Account hacked.",
+            "Fraud alert!",
+            "Unrecognized transaction found.",
+            "Help, money stolen!"
+        ],
+
+        # 6. CANCELLATION (取消)
+        6: [
+            "I want to close my account.",
+            "How to {action_cancel} my credit card?",
+            "Don't want to use your service anymore.",
+            "Stop the auto-renewal please.",
+            "I am switching to another bank.",
+            "Please proceed with the cancellation.",
+            "我想 Cut 咗張白金卡佢。",
+            "取消自動轉賬要點做？",
+            "我要取消戶口，不想再用你哋服務。",
+            "填邊張表可以 {action_cancel} 服務？",
+            "幫我停咗個 {product} 佢，唔該。",
+            "我轉會啦，拜拜。",
+            "Terminate my subscription now.",
+            "I want to opt-out from this service.",
+            "Cut card procedure.",
+            "Cancel my application.",
+            "Close savings account.",
+            "我想退保，點做？",
+            "唔想再用你地張卡。",
+            "Stop the monthly charge.",
+            "Cancel everything.",
+            "Form for account closure?",
+            "Process my termination.",
+            "I found a better bank, closing this one.",
+            "Can I cancel online?"
+        ],
+
+        # 7. SALES_LEAD (銷售)
+        7: [
+            "I want to {action_apply} a {product}.",
+            "Tell me more about your investment plans.",
+            "I am looking to borrow some money.",
+            "Do you have any promotion for new clients?",
+            "I want to buy travel insurance.",
+            "Please ask a sales staff to call me.",
+            "我想申請私人貸款，息率幾多？",
+            "有無旅遊保險介紹？",
+            "我想開個投資戶口。",
+            "有無 {product} 迎新優惠？",
+            "我有興趣買 {product}，揾人聯絡我。",
+            "想問下做按揭既詳情。",
+            "Interested in opening a business account.",
+            "Any cash rebate for new credit card?",
+            "Looking for a tax loan.",
+            "I want to start investing.",
+            "What mortgage plan do you offer?",
+            "Apply for Visa card.",
+            "我想借錢，有無平息？",
+            "對你地個基金有興趣。",
+            "Open new account.",
+            "Want to sign up for MPF.",
+            "Show me your best offer.",
+            "I need a loan.",
+            "Buying forex."
+        ],
+
+        # 8. HUMAN_AGENT (真人)
+        8: [
+            "I want to talk to a human.",
+            "Connect me to an agent please.",
+            "Don't want to chat with bot.",
+            "Is there a real person available?",
+            "Transfer to operator.",
+            "Can I speak to the manager?",
+            "我想同真人對話。",
+            "叫你經理出黎。",
+            "轉駁去客戶服務員。",
+            "我要人聽電話！唔想同機械人講野。",
+            "揾個人黎得唔得？",
+            "人工客服係邊？",
+            "Talk to staff.",
+            "Live chat with agent please.",
+            "Human support needed.",
+            "Customer service representative please.",
+            "Bot is useless, give me a human.",
+            "我想找客服。",
+            "接駁去熱線同事。",
+            "Need real help.",
+            "Speak to someone.",
+            "Chat with operator.",
+            "有無真人呀？",
+            "轉台去人手。",
+            "Staff please."
+        ],
+
+        # 9. BUG_REPORT (故障)
+        9: [
+            "The {tech_noun} {tech_verb} every time.",
+            "I see {error_code} when I login.",
+            "Cannot click the submit button.",
+            "FaceID is not working.",
+            "App closes immediately after opening.",
+            "System is down again.",
+            "網上理財出 Error 503。",
+            "個畫面卡住咗係 Loading 頁面。",
+            "收唔到 SMS 驗證碼。",
+            "個 App 又 {tech_verb}，搞錯！",
+            "每次入去都白畫面，{hk_verbs}。",
+            "個指紋 Login 用唔到。",
+            "Cannot load the transaction history.",
+            "The screen freezes when I transfer money.",
+            "Bug in the latest update.",
+            "App keeps crashing on iPhone.",
+            "Login failed: System Error.",
+            "Unable to connect to server.",
+            "個制撳極都無反應。",
+            "閃退問題嚴重。",
+            "FPS transfer failed.",
+            "App is very laggy.",
+            "Technical issue with the app.",
+            "Blank screen error.",
+            "Something wrong with the system."
+        ],
+
+        # 10. GREETING (打招呼)
+        10: [
+            "Hi", "Hello", "Good morning", "Good afternoon", "Good evening",
+            "Hey there", "Greetings", "Hi bot", "Yo",
+            "早晨。", "你好。", "喂。", "哈囉。", "有無人係度？",
+            "Hi hi", "Hello testing", "Good day", "Hey", "Hi there",
+            "Excuse me", "Anyone?", "Start chat", "Begin", "Hola"
+        ],
+
+        # 11. IRRELEVANT (無關)
+        11: [
+            "abcd", "123456", "testing", "blah blah",
+            "buy bitcoin", "click this link", "nonsense",
+            "what is the weather?", "tell me a joke",
+            "do you like pizza?", "spam message",
+            "借錢梗要還，咪俾錢中介", "今天天氣如何？", 
+            "食咗飯未？", "亂打一通", "測試測試",
+            "asdfghjkl", "Testing 123", "Wrong number",
+            "How are you?", "Are you AI?", "Sing a song",
+            "Promotion code 123", "Crypto scam", "Click here"
+        ]
+    }
 
     # ==========================================
-    # 3. Topic Templates (12 Categories) - NOW WITH MIXED LANGUAGES
+    # 3. 衝突過濾器 (Conflict Filter)
     # ==========================================
-    
-    # 0. COMPLAINT (Mixed English & Cantonese)
-    complaints = [
-        "Your App {issue}, rubbish!", "Called many times, always {status}.", 
-        "Cannot Login, shows {error}.", "Staff at {location} was {behavior}.",
-        "Why charged me {fee}? Refund!", "Very {feeling} with your service.",
-        "Waiting for {item} for too long!", "Never been so {feeling} before.",
-        "System keeps showing {error}.", "Staff {behavior}, I want to complain.",
-        # Cantonese / Mix
-        "你哋個 App {issue_hk}，垃圾！", "打極電話都 {status_hk}，火都黎埋。",
-        "分行職員 {behavior_hk}，完全唔想幫手。", "無端端收多我 {fee_hk}，回水！",
-        "對你哋服務好 {feeling_hk}，以後唔用。", "個 App 更新完之後狂 {issue_hk}，用唔到呀！",
-        "點解無端端扣我 {amount}？解釋下好沃。", "Crazy admin fee {fee}, 回水！"
-    ]
+    conflicts = {
+        0: [2, 10], 2: [0, 5, 9, 6], 5: [2, 10, 3], 6: [2], 9: [2], 10: [0, 5, 6], 11: [0,1,2,3,4,5,6,7,8,9,10]
+    }
 
-    # 1. QUESTION
-    questions = [
-        "What time does {location} open on {time}?", "How long to approve {product}?",
-        "How to change my {info}?", "Can I waive the {fee}?",
-        "How to activate {feature}?", "Interest rate for {product}?",
-        "Lost my {item}, procedure?", "Any promotion for {product}?",
-        "Where is {location}?", "How to reset password?",
-        # Cantonese / Mix
-        "請問分行 {time} 幾點開門？", "申請 {product} 要幾耐批？",
-        "我想更改 {info}，手續係點？", "有無得豁免 {fee_hk}？",
-        "請問點樣啟動 {feature} 功能？", "我想問下 {product} 既利息係幾多？",
-        "如果我唔見咗 {item}，應該點做？", "有無 {product} 既最新優惠？",
-        "想問 {location} 有無得做 {feature}？", "FPS transfer limit 係幾多?"
-    ]
-
-    # 2. PRAISE
-    praises = [
-        "{staff} is very {trait}, good job.", "Thanks for solving {issue}, fast.",
-        "CS was {trait}, explained clearly.", "Excellent {service}!",
-        "App update is {improvement}, nice.", "Satisfied with {service}.",
-        "Professional {staff}.", "Very {trait} staff at {location}.",
-        "Great experience.", "Appreciate the {trait} service.",
-        # Cantonese / Mix
-        "{staff} 服務好好，好 {trait_hk}，值得表揚。", "多謝你哋幫我解決 {issue_hk}，效率好高。",
-        "上次個客服好 {trait_hk}，解釋得好清楚。", "個 App 更新左之後 {improvement}，正！",
-        "十分滿意你哋既 {service}。", "感受到你哋既專業，{staff} 好幫手。",
-        "{staff} 好有禮貌，令我好開心。", "很少見到咁 {trait_hk} 既銀行職員。"
-    ]
-
-    # 3. SUGGESTION
-    suggestions = [
-        "Please add Dark Mode to the App.", "Suggest to add more {feature}.",
-        "Better if you open on {time}.", "App needs {improvement}.",
-        "Should waiver {fee} for old clients.", "Please improve {feature} UI.",
-        "Hope to see more ATMs in {location}.", "Suggest to simplify {product} application.",
-        "Can you make the font bigger?", "Please bring back the old layout.",
-        # Cantonese / Mix
-        "強烈建議加返指紋 Login 功能。", "希望 App 可以加個 Dark Mode。",
-        "如果你哋分行可以多幾張櫈就好啦。", "建議 {product} 申請手續簡化啲。",
-        "個字體太細，老人家睇唔到，建議改大啲。", "可唔可以加返舊版個 layout?"
-    ]
-
-    # 4. STATUS_CHECK
-    status_checks = [
-        "Applied for {product} last week, any news?", "Where is my {item}?",
-        "Status of my application?", "Has my card been mailed?",
-        "Is my {info} updated?", "Check status of case #1234.",
-        "Still waiting for approval.", "Any update on my request?",
-        "Did you receive my documents?", "When will I get the {item}?",
-        # Cantonese / Mix
-        "我上星期交咗表，而家審批成點？", "張卡寄出未呀？等咗好耐。",
-        "有無人跟進緊我個 Case？", "我想 Check 下申請進度。",
-        "究竟批左未？", "收到文件未？", "幾時先收到張卡？"
-    ]
-
-    # 5. FRAUD_REPORT
-    frauds = [
-        "I lost my {item}, help!", "My card was {fraud_keyword}.",
-        "Saw a transaction I didn't make.", "Suspect {fraud_keyword} on my account.",
-        "Please freeze my account immediately.", "Received suspicious SMS.",
-        "Someone used my card.", "I think I got hacked.",
-        "Unrecognized charge of {amount}.", "Report {fraud_keyword}.",
-        # Cantonese / Mix
-        "我唔見咗張信用卡，想報失！", "收到條 SMS 話我有交易，但我無碌過卡！",
-        "懷疑被人盜用資料，快啲幫我凍結戶口。", "我張卡 {fraud_keyword_hk}。",
-        "有單交易我唔認數。", "救命，我個戶口俾人 Hack 咗！"
-    ]
-
-    # 6. CANCELLATION
-    cancellations = [
-        "I want to {cancel_action} my card.", "How to {cancel_action} {product}?",
-        "Close my account please.", "Don't want to use your service anymore.",
-        "Process my cancellation.", "Stop the auto-renewal.",
-        "I am switching to another bank.", "Cancel my application.",
-        "Form for account closure?", "Terminate service now.",
-        # Cantonese / Mix
-        "我想 Cut 咗張白金卡佢。", "取消自動轉賬要點做？",
-        "我要取消戶口，不想再用你哋服務。", "填邊張表可以 {cancel_action_hk} 服務？",
-        "幫我停咗個 {product} 佢。", "我轉會啦，拜拜。"
-    ]
-
-    # 7. SALES_LEAD
-    sales = [
-        "I am {sales_interest} {product}.", "Tell me more about {product}.",
-        "Want to open an investment account.", "Buying travel insurance.",
-        "Looking for a mortgage plan.", "Any good offers for new clients?",
-        "I want to borrow money.", "{sales_interest} personal loan.",
-        "How to apply for {product}?", "Connect me to sales team.",
-        # Cantonese / Mix
-        "我想申請私人貸款，息率幾多？", "有無旅遊保險介紹？",
-        "我想開個投資戶口。", "有無 {product} 迎新優惠？",
-        "我有興趣買 {product}。", "我想借錢，有咩 plan?"
-    ]
-
-    # 8. HUMAN_AGENT
-    agents = [
-        "Talk to human.", "Connect me to agent.",
-        "I want a real person.", "Customer service please.",
-        "Chat with staff.", "Transfer to operator.",
-        "Don't want AI.", "Live chat support.",
-        "Speak to manager.", "Human help.",
-        # Cantonese / Mix
-        "我想同真人對話。", "叫你經理出黎。", "轉駁去客戶服務員。",
-        "我要人聽電話！", "唔想同機械人講野。", "揾個人黎得唔得？"
-    ]
-
-    # 9. BUG_REPORT
-    bugs = [
-        "App crashing when I click {feature}.", "Error 500 on login page.",
-        "Buttons not responding.", "Screen freezes at {feature}.",
-        "Cannot upload document.", "Biometric login broken.",
-        "Page layout is messed up.", "App drains battery.",
-        "Cannot type in the field.", "White screen on startup.",
-        # Cantonese / Mix
-        "網上理財出 Error 503。", "個畫面卡住咗係 Loading 頁面。",
-        "收唔到 SMS 驗證碼。", "個制撳唔到。", "每次入去都白畫面。",
-        "App 食電食得好快。"
-    ]
-
-    # 10. GREETING
-    greetings = [
-        "Hi", "Hello", "Good morning", "Good evening",
-        "Hey", "Anyone there?", "Greetings", "Hi bot",
-        "Good afternoon", "Yo",
-        # Cantonese / Mix
-        "早晨。", "你好。", "喂。", "哈囉。", "有無人係度？"
-    ]
-
-    # 11. IRRELEVANT
-    irrelevant = [
-        "abcd", "123456", "testing", "blah blah",
-        "buy bitcoin", "click this link", "nonsense",
-        "what is the weather?", "tell me a joke", "spam message",
-        # Cantonese / Mix
-        "借錢梗要還，咪俾錢中介", "今天天氣如何？", "食咗飯未？", 
-        "亂打一通", "測試測試"
-    ]
-
-    # Mapping Categories
-    categories = [
-        (complaints, 0), (questions, 1), (praises, 2), (suggestions, 3),
-        (status_checks, 4), (frauds, 5), (cancellations, 6), (sales, 7),
-        (agents, 8), (bugs, 9), (greetings, 10), (irrelevant, 11)
-    ]
+    # ==========================================
+    # 4. 連接詞 (Connectors)
+    # ==========================================
+    connectors = [". Also, ", ". Plus, ", " and ", " & ", "; ", "，同埋 ", "。另外 ", "，還有 ", "，仲有 ", "。 ", " ", " ", "\n"]
+    prefixes = ["Hi, ", "Urgent: ", "喂, ", "唔該, ", "To Manager: ", "", "", ""]
+    suffixes = [".", "!", "...", " 唔該。", " thx.", "", ""]
 
     data = []
-    
-    # Calculate samples per class
-    samples_per_class = int(num_samples / len(categories)) + 50
-    print(f"   - Target per class: {samples_per_class}")
+    seen_texts = set() # ✅ ADDED: Unique Check
 
-    # --- 4. NOISE INJECTION FUNCTION (Strategy D) ---
-    def add_typo(text):
-        if len(text) < 5 or random.random() > 0.1: # Only 10% chance to typo
-            return text
+    def fill_slots(text):
+        for k, v in slots.items():
+            if "{"+k+"}" in text: text = text.replace("{"+k+"}", random.choice(v))
+        return text
+
+    # ==========================================
+    # 5. 生成 Loop (Logic)
+    # ==========================================
+    count = 0
+    max_attempts = num_samples * 5
+    attempts = 0
+
+    while count < num_samples and attempts < max_attempts:
+        attempts += 1
+        label_vec = [0.0] * 12
+        final_text = ""
         
-        # Simple typo logic: remove a char, or swap chars
-        char_list = list(text)
-        idx = random.randint(0, len(char_list) - 1)
-        
-        if random.random() > 0.5:
-            # Delete char
-            del char_list[idx]
+        # [A] 50% 機率：雙重意圖 (Double Intent)
+        if random.random() < 0.5:
+            idx1 = random.randint(0, 10)
+            valid_seconds = [i for i in range(11) if i != idx1 and i not in conflicts.get(idx1, []) and idx1 not in conflicts.get(i, [])]
+            
+            if not valid_seconds:
+                sent = fill_slots(random.choice(templates[idx1]))
+                final_text = f"{random.choice(prefixes)}{sent}{random.choice(suffixes)}"
+                label_vec[idx1] = 1.0
+            else:
+                idx2 = random.choice(valid_seconds)
+                sent1 = fill_slots(random.choice(templates[idx1]))
+                sent2 = fill_slots(random.choice(templates[idx2]))
+                conn = random.choice(connectors)
+                final_text = f"{random.choice(prefixes)}{sent1}{conn}{sent2}{random.choice(suffixes)}"
+                label_vec[idx1] = 1.0
+                label_vec[idx2] = 1.0
+
+        # [B] 50% 機率：單一意圖
         else:
-            # Repeat char (e.g., "hello" -> "helllo")
-            char_list.insert(idx, char_list[idx])
-            
-        return "".join(char_list)
+            idx = random.randint(0, 11)
+            sent = fill_slots(random.choice(templates[idx]))
+            final_text = f"{random.choice(prefixes)}{sent}{random.choice(suffixes)}"
+            label_vec[idx] = 1.0
 
-    # --- Generation Function ---
-    def create_samples(template_list, label_id, count):
-        temp_data = []
-        for _ in range(count):
-            tmpl = random.choice(template_list)
-            
-            # Random Prefix/Suffix
-            prefix = random.choice(prefixes) if random.random() > 0.4 else ""
-            suffix = random.choice(suffixes) if random.random() > 0.4 else ""
-            
-            # Fill Slots
-            text = tmpl
-            for key, values in slots.items():
-                if "{" + key + "}" in text:
-                    text = text.replace("{" + key + "}", random.choice(values))
-            
-            final_text = f"{prefix}{text}{suffix}"
-            
-            # Apply Noise (Strategy D)
-            final_text = add_typo(final_text)
-            
-            temp_data.append({"text": final_text, "label": label_id})
-        return temp_data
+        # ✅ ADDED: Unique Check logic
+        if final_text not in seen_texts:
+            seen_texts.add(final_text)
+            data.append({"text": final_text, "label": label_vec})
+            count += 1
+            if count % 10000 == 0:
+                print(f"   ... Generated {count}/{num_samples}")
 
-    # Generate Data for each category
-    for template_list, label_id in categories:
-        print(f"   - Generating Label {label_id}...")
-        data.extend(create_samples(template_list, label_id, samples_per_class))
-
-    # Shuffle and Slice
-    random.shuffle(data)
-    data = data[:num_samples]
-    
     return data
 
 if __name__ == "__main__":
-    TARGET_COUNT = 50000
-    dataset = generate_huge_data(TARGET_COUNT)
-    
-    output_file = "train_data_topic.json"
-    with open(output_file, "w", encoding="utf-8") as f:
+    dataset = generate_multilabel_data(50000)
+    with open("train_data_multilabel.json", "w", encoding="utf-8") as f:
         json.dump(dataset, f, ensure_ascii=False, indent=2)
-        
-    print(f"\n✅ Successfully generated {len(dataset)} high-quality samples!")
-    print(f"📁 Saved to: {output_file}")
+    print(f"\n✅ Generated {len(dataset)} Conflict-Free Multi-Label samples!")
+    print(json.dumps([d for d in dataset if sum(d['label']) > 1][:3], ensure_ascii=False, indent=2))
